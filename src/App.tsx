@@ -184,7 +184,9 @@ useEffect(() => {
     .map(([code, airport]) => (
       <div
         key={code}
-        ref={el => (cardRefs.current[code] = el)}
+        ref={el => {
+          cardRefs.current[code] = el; // assign the element
+        }}
         style={{
           border: code === destination ? "2px solid #0078d7" : "1px solid #ccc",
           background: code === destination ? "#e13a00" : "#ff5115", // highlight selected
@@ -204,7 +206,14 @@ useEffect(() => {
 
       {/* Map */}
       <div style={{ flex: 1, position: "relative" }}>
-        <MapContainer center={destinations[origin].coordinates} zoom={4} style={{ height: "100%", width: "100%" }}>
+      <MapContainer
+  center={L.latLng(
+    destinations[origin as keyof typeof destinations].coordinates[0],
+    destinations[origin as keyof typeof destinations].coordinates[1]
+  )}
+  zoom={4}
+  style={{ height: "100%", width: "100%" }}
+>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
           {/* All airport markers with price tooltip */}
@@ -251,7 +260,11 @@ useEffect(() => {
           {route && (
             <>
               <FitBounds path={route.curve} />
-              <Polyline positions={route.curve} color="blue" weight={3} />
+              <Polyline
+  positions={route.curve.map(point => [point[0], point[1]] as [number, number])}
+  color="blue"
+  weight={3}
+/>
               <AirplaneAnimation path={route.curve} />
             </>
           )}
