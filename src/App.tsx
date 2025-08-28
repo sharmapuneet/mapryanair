@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -30,18 +30,6 @@ const destinations = {
   AKL: { name: "Auckland", coordinates: [-36.8485, 174.7633], price: 400 },
   ZQN: { name: "Queenstown", coordinates: [-45.0312, 168.6626], price: 450 },
 };
-
-// Calculate bearing for airplane rotation
-function getBearing(start: number[], end: number[]) {
-  const [lat1, lon1] = start.map(x => (x * Math.PI) / 180);
-  const [lat2, lon2] = end.map(x => (x * Math.PI) / 180);
-  const dLon = lon2 - lon1;
-  const y = Math.sin(dLon) * Math.cos(lat2);
-  const x =
-    Math.cos(lat1) * Math.sin(lat2) -
-    Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-  return (Math.atan2(y, x) * 180) / Math.PI;
-}
 
 // Generate curved arc between two points
 function generateArc(from: number[], to: number[], segments = 100) {
@@ -119,33 +107,18 @@ function AirplaneAnimation({ path }: { path: number[][] }) {
     className: "",
   });
 
-  return <Marker position={position} icon={airplaneIcon} />;
+  return <Marker position={position as [number, number]} icon={airplaneIcon} />;
 }
 
 // Fit map bounds with dynamic zoom
 function FitBounds({ path }: { path: number[][] }) {
   const map = useMap();
 
-  const getDistance = (a: number[], b: number[]) => {
-    const latDiff = a[0] - b[0];
-    const lngDiff = a[1] - b[1];
-    return Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-  };
-
   useEffect(() => {
     if (path && path.length > 0) {
-      const start = path[0];
-      const end = path[path.length - 1];
-      const distance = getDistance(start, end);
-
-      // Dynamic max zoom based on distance
-      let maxZoom = 5;
-      if (distance < 10) maxZoom = 4;
-      else if (distance < 20) maxZoom = 5;
-      else if (distance < 50) maxZoom = 6;
-      else maxZoom = 7;
-
-      map.fitBounds(path, { padding: [50, 50], maxZoom });
+      // Convert path points to LatLng objects
+      const bounds = L.latLngBounds(path.map(p => L.latLng(p[0], p[1])));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 5 });
     }
   }, [path, map]);
 
@@ -157,11 +130,11 @@ export default function FlightSearchMap() {
   const [destination, setDestination] = useState("SYD");
 
   const route = useMemo(() => {
-    if (destinations[origin] && destinations[destination]) {
+    if (destinations[origin as keyof typeof destinations] && destinations[destination as keyof typeof destinations]) {
       return {
-        from: destinations[origin],
-        to: destinations[destination],
-        curve: generateArc(destinations[origin].coordinates, destinations[destination].coordinates, 200)
+        from: destinations[origin as keyof typeof destinations],
+        to: destinations[destination as keyof typeof destinations],
+        curve: generateArc(destinations[origin as keyof typeof destinations].coordinates, destinations[destination as keyof typeof destinations].coordinates, 200)
       };
     }
     return null;
@@ -260,7 +233,7 @@ useEffect(() => {
             return (
               <Marker
                 key={code}
-                position={airport.coordinates}
+                position={airport.coordinates as [number, number]}
                 icon={airportIcon}
                 eventHandlers={{ click: () => setDestination(code) }}
               >
